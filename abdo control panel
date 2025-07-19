@@ -1,39 +1,41 @@
--- ABDO Script GUI (Windows 11 Style Public Control) - Scrollable + Jump Bypass Fixed
+--// ✅ ABDO Script GUI (Windows 11 Style Public Control) - XENO Optimized
 
 local player = game:GetService("Players").LocalPlayer
 local userInput = game:GetService("UserInputService")
-local runService = game:GetService("RunService")
-
 local gui = Instance.new("ScreenGui")
 gui.Name = "AbdoScriptGUI"
 gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = true
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- Main Frame (smaller size)
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 280, 0, 400)
-frame.Position = UDim2.new(0, 30, 0.4, -200)
+frame.Size = UDim2.new(0, 280, 0, 520)
+frame.Position = UDim2.new(0, 30, 0, 150) -- Changed to top-left origin with some offset
 frame.BackgroundColor3 = Color3.fromRGB(245, 245, 245)
 frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = false -- We'll handle custom dragging
+frame.AnchorPoint = Vector2.new(0, 0) -- Fixed anchor point to top-left
+frame.BackgroundTransparency = 0.05
 frame.ClipsDescendants = true
 
--- Drag area at top only
-local dragBar = Instance.new("Frame", frame)
-dragBar.Size = UDim2.new(1, 0, 0, 36)
-dragBar.BackgroundColor3 = Color3.fromRGB(225, 225, 255)
-dragBar.BorderSizePixel = 0
-dragBar.Name = "DragBar"
-dragBar.Active = true
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 36)
+title.BackgroundColor3 = Color3.fromRGB(225, 225, 255)
+title.Text = "🔷 ABDO Control Panel"
+title.TextColor3 = Color3.new(0, 0, 0)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
 
+-- Custom dragging support
 local dragging = false
-local dragInput, dragStart, startPos
+local dragInput, mousePos, framePos
 
-dragBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
-        dragStart = input.Position
-        startPos = frame.Position
+        mousePos = input.Position
+        framePos = frame.Position
         input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
                 dragging = false
@@ -42,53 +44,29 @@ dragBar.InputBegan:Connect(function(input)
     end
 end)
 
-dragBar.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
+title.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
         dragInput = input
     end
 end)
 
-userInput.InputChanged:Connect(function(input)
+game:GetService("UserInputService").InputChanged:Connect(function(input)
     if input == dragInput and dragging then
-        local delta = input.Position - dragStart
+        local delta = input.Position - mousePos
         frame.Position = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
+            framePos.X.Scale,
+            framePos.X.Offset + delta.X,
+            framePos.Y.Scale,
+            framePos.Y.Offset + delta.Y
         )
     end
 end)
 
--- Title
-local title = Instance.new("TextLabel", dragBar)
-title.Size = UDim2.new(1, 0, 1, 0)
-title.BackgroundTransparency = 1
-title.Text = "🔷 ABDO Control Panel"
-title.TextColor3 = Color3.new(0, 0, 0)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 20
-
--- ScrollingFrame for buttons
-local scrollFrame = Instance.new("ScrollingFrame", frame)
-scrollFrame.Size = UDim2.new(1, 0, 1, -36)
-scrollFrame.Position = UDim2.new(0, 0, 0, 36)
-scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-scrollFrame.ScrollBarThickness = 6
-scrollFrame.BackgroundTransparency = 1
-
-local layout = Instance.new("UIListLayout", scrollFrame)
-layout.Padding = UDim.new(0, 6)
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-
-layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
-end)
-
 -- Button creator
-local function createCircleButton(text, callback)
-    local btn = Instance.new("TextButton", scrollFrame)
+local function createCircleButton(text, order, callback)
+    local btn = Instance.new("TextButton", frame)
     btn.Size = UDim2.new(1, -20, 0, 34)
+    btn.Position = UDim2.new(0, 10, 0, 40 + (order * 38))
     btn.BackgroundColor3 = Color3.fromRGB(230, 230, 255)
     btn.Text = text
     btn.TextColor3 = Color3.fromRGB(0, 0, 0)
@@ -97,6 +75,8 @@ local function createCircleButton(text, callback)
     btn.BorderSizePixel = 0
     btn.AutoButtonColor = true
     btn.ClipsDescendants = true
+    btn.AnchorPoint = Vector2.new(0, 0)
+    btn.ZIndex = 2
     btn.BackgroundTransparency = 0.05
     btn.TextWrapped = true
     btn.TextTruncate = Enum.TextTruncate.AtEnd
@@ -116,30 +96,43 @@ player.CharacterAdded:Connect(function()
     gui.Parent = player:WaitForChild("PlayerGui")
 end)
 
--- Flying code
+-- 🛡️ God Mode toggle (removed as you requested, so skipping)
+
+-- 🚩 Fly (works on Xeno and Delta, no auto disable on Delta)
 local flying = false
-createCircleButton("🚩 Fly", function()
+local flyConn
+
+createCircleButton("🚩 Fly", 0, function()
     flying = not flying
     local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     local hum = player.Character and player.Character:FindFirstChild("Humanoid")
     if flying and hrp and hum then
         hum.PlatformStand = true
-        local bv = Instance.new("BodyVelocity")
+        local bv = hrp:FindFirstChild("AbdoFly") or Instance.new("BodyVelocity")
         bv.Name = "AbdoFly"
-        bv.Velocity = Vector3.zero
-        bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+        bv.Velocity = Vector3.new(0,0,0)
+        bv.MaxForce = Vector3.new(1e9,1e9,1e9)
         bv.Parent = hrp
-        local conn
-        conn = runService.RenderStepped:Connect(function()
-            if not flying or not hrp:FindFirstChild("AbdoFly") then conn:Disconnect() return end
+
+        if flyConn then flyConn:Disconnect() end
+        flyConn = game:GetService("RunService").RenderStepped:Connect(function()
+            if not flying or not hrp:FindFirstChild("AbdoFly") then
+                flyConn:Disconnect()
+                flyConn = nil
+                return
+            end
             local moveVec = Vector3.zero
             if userInput:IsKeyDown(Enum.KeyCode.W) then moveVec += workspace.CurrentCamera.CFrame.LookVector end
             if userInput:IsKeyDown(Enum.KeyCode.S) then moveVec -= workspace.CurrentCamera.CFrame.LookVector end
             if userInput:IsKeyDown(Enum.KeyCode.A) then moveVec -= workspace.CurrentCamera.CFrame.RightVector end
             if userInput:IsKeyDown(Enum.KeyCode.D) then moveVec += workspace.CurrentCamera.CFrame.RightVector end
-            hrp.AbdoFly.Velocity = moveVec.Magnitude > 0 and moveVec.Unit * 70 or Vector3.zero
+            bv.Velocity = moveVec.Magnitude > 0 and moveVec.Unit * 70 or Vector3.zero
         end)
     elseif hrp then
+        if flyConn then
+            flyConn:Disconnect()
+            flyConn = nil
+        end
         hum.PlatformStand = false
         if hrp:FindFirstChild("AbdoFly") then
             hrp.AbdoFly:Destroy()
@@ -147,12 +140,12 @@ createCircleButton("🚩 Fly", function()
     end
 end)
 
--- Noclip toggle
+-- 🚪 Toggle Noclip
 local noclip = false
-createCircleButton("🚪 Noclip", function()
+createCircleButton("🚪 Noclip", 1, function()
     noclip = not noclip
 end)
-runService.Stepped:Connect(function()
+game:GetService("RunService").Stepped:Connect(function()
     if noclip and player.Character then
         for _, part in pairs(player.Character:GetDescendants()) do
             if part:IsA("BasePart") then
@@ -162,9 +155,9 @@ runService.Stepped:Connect(function()
     end
 end)
 
--- Click TP toggle
+-- 👣 Toggle Click TP
 local tpEnabled = false
-createCircleButton("👣 Click TP", function()
+createCircleButton("👣 Click TP", 2, function()
     tpEnabled = not tpEnabled
 end)
 local mouse = player:GetMouse()
@@ -174,32 +167,32 @@ mouse.Button1Down:Connect(function()
     end
 end)
 
--- WalkSpeed +
-createCircleButton("⚡ WalkSpeed +", function()
+-- ⚡ WalkSpeed +
+createCircleButton("⚡ WalkSpeed +", 3, function()
     local hum = player.Character and player.Character:FindFirstChild("Humanoid")
     if hum then hum.WalkSpeed += 5 end
 end)
 
--- WalkSpeed -
-createCircleButton("⚡ WalkSpeed -", function()
+-- ⚡ WalkSpeed -
+createCircleButton("⚡ WalkSpeed -", 4, function()
     local hum = player.Character and player.Character:FindFirstChild("Humanoid")
     if hum then hum.WalkSpeed -= 5 end
 end)
 
--- JumpPower +
-createCircleButton("🦘 JumpPower +", function()
+-- 🫘 JumpPower +
+createCircleButton("🫘 JumpPower +", 5, function()
     local hum = player.Character and player.Character:FindFirstChild("Humanoid")
     if hum then hum.JumpPower += 5 end
 end)
 
--- JumpPower -
-createCircleButton("🦘 JumpPower -", function()
+-- 🫘 JumpPower -
+createCircleButton("🫘 JumpPower -", 6, function()
     local hum = player.Character and player.Character:FindFirstChild("Humanoid")
     if hum then hum.JumpPower -= 5 end
 end)
 
--- Reset Walk/Jump
-createCircleButton("🔁 Reset Walk/Jump", function()
+-- 🔁 Reset Walk/Jump
+createCircleButton("🔁 Reset Walk/Jump", 7, function()
     local hum = player.Character and player.Character:FindFirstChild("Humanoid")
     if hum then
         hum.WalkSpeed = 16
@@ -207,30 +200,15 @@ createCircleButton("🔁 Reset Walk/Jump", function()
     end
 end)
 
--- Blood Sky
-createCircleButton("🩸 Blood Sky", function()
-    local sky = game.Lighting:FindFirstChildOfClass("Sky")
-    if not sky then
-        sky = Instance.new("Sky", game.Lighting)
-    end
-    local bloodSkyId = "9964681142"
-    sky.SkyboxBk = "http://www.roblox.com/asset/?id="..bloodSkyId
-    sky.SkyboxDn = "http://www.roblox.com/asset/?id="..bloodSkyId
-    sky.SkyboxFt = "http://www.roblox.com/asset/?id="..bloodSkyId
-    sky.SkyboxLf = "http://www.roblox.com/asset/?id="..bloodSkyId
-    sky.SkyboxRt = "http://www.roblox.com/asset/?id="..bloodSkyId
-    sky.SkyboxUp = "http://www.roblox.com/asset/?id="..bloodSkyId
-end)
-
--- Invisible (Client Side)
+-- 👻 Invisible (client side only)
 local invisible = false
-createCircleButton("👻 Invisible", function()
+createCircleButton("👻 Invisible", 8, function()
     invisible = not invisible
     local character = player.Character
     if character then
         for _, part in pairs(character:GetDescendants()) do
             if part:IsA("BasePart") then
-                part.LocalTransparencyModifier = invisible and 1 or 0
+                part.Transparency = invisible and 1 or 0
             elseif part:IsA("Decal") then
                 part.Transparency = invisible and 1 or 0
             end
@@ -238,109 +216,79 @@ createCircleButton("👻 Invisible", function()
     end
 end)
 
--- Break World (joke & client)
+-- 💥 Break World (Joke & Client Side)
 local worldBroken = false
-createCircleButton("💥 Break World (Joke & Client)", function()
+createCircleButton("💥 Break World (Joke & Client)", 9, function()
+    local character = player.Character
+    if not character then return end
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
     worldBroken = not worldBroken
-    for _, part in pairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") then
-            if worldBroken then
+
+    if worldBroken then
+        -- Hide nearby parts locally within 100 studs
+        for _, part in pairs(workspace:GetDescendants()) do
+            if part:IsA("BasePart") and (part.Position - hrp.Position).Magnitude < 100 then
                 if not part:GetAttribute("OriginalTransparency") then
-                    part:SetAttribute("OriginalTransparency", part.LocalTransparencyModifier or 0)
+                    part:SetAttribute("OriginalTransparency", part.Transparency)
                 end
                 part.LocalTransparencyModifier = 1
-                part.Velocity = Vector3.new(math.random(-50,50), math.random(10,50), math.random(-50,50))
-            else
-                if part:GetAttribute("OriginalTransparency") then
-                    part.LocalTransparencyModifier = part:GetAttribute("OriginalTransparency")
-                else
-                    part.LocalTransparencyModifier = 0
-                end
+            end
+        end
+    else
+        -- Restore local transparency
+        for _, part in pairs(workspace:GetDescendants()) do
+            if part:IsA("BasePart") and part:GetAttribute("OriginalTransparency") then
+                part.LocalTransparencyModifier = 0
             end
         end
     end
 end)
 
--- No Die Mode (regen health)
-local noDieEnabled = false
-local noDieConn
-createCircleButton("🛡️ No Die Mode", function()
-    noDieEnabled = not noDieEnabled
-    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-    if noDieEnabled and humanoid then
-        if noDieConn then noDieConn:Disconnect() end
-        noDieConn = runService.Heartbeat:Connect(function()
-            if humanoid and humanoid.Health < humanoid.MaxHealth then
-                humanoid.Health = humanoid.MaxHealth
-            end
-        end)
+-- 🔴 Blood Sky toggle
+local bloodSkyOn = false
+createCircleButton("🌌 Blood Sky", 10, function()
+    bloodSkyOn = not bloodSkyOn
+    if bloodSkyOn then
+        local sky = Instance.new("Sky")
+        sky.Name = "AbdoBloodSky"
+        sky.SkyboxBk = "rbxassetid://504470299"
+        sky.SkyboxDn = "rbxassetid://504470297"
+        sky.SkyboxFt = "rbxassetid://504470301"
+        sky.SkyboxLf = "rbxassetid://504470298"
+        sky.SkyboxRt = "rbxassetid://504470300"
+        sky.SkyboxUp = "rbxassetid://504470296"
+        sky.Parent = game.Lighting
     else
-        if noDieConn then noDieConn:Disconnect() noDieConn = nil end
+        local oldSky = game.Lighting:FindFirstChild("AbdoBloodSky")
+        if oldSky then oldSky:Destroy() end
     end
 end)
 
-player.CharacterAdded:Connect(function(char)
-    if noDieEnabled then
-        local humanoid = char:WaitForChild("Humanoid")
-        if noDieConn then noDieConn:Disconnect() end
-        noDieConn = runService.Heartbeat:Connect(function()
-            if humanoid and humanoid.Health < humanoid.MaxHealth then
-                humanoid.Health = humanoid.MaxHealth
-            end
-        end)
-    end
-end)
-
--- Jump Bypass (loops jumping)
-local jumpBypassEnabled = false
-local jumpLoop
-
-createCircleButton("🦘 Jump Bypass", function()
-    jumpBypassEnabled = not jumpBypassEnabled
+-- 🦘 Jump Bypass (hold space to continuously jump)
+local jumpBypassOn = false
+local jumpConnection
+createCircleButton("🦘 Jump Bypass", 11, function()
+    jumpBypassOn = not jumpBypassOn
     local hum = player.Character and player.Character:FindFirstChild("Humanoid")
-
-    if jumpBypassEnabled then
-        if jumpLoop then
-            jumpLoop:Disconnect()
-        end
-        jumpLoop = runService.Heartbeat:Connect(function()
-            if hum and jumpBypassEnabled then
+    if jumpBypassOn and hum then
+        jumpConnection = game:GetService("RunService").Stepped:Connect(function()
+            if userInput:IsKeyDown(Enum.KeyCode.Space) then
                 hum.Jump = true
-            else
-                if jumpLoop then
-                    jumpLoop:Disconnect()
-                    jumpLoop = nil
-                end
             end
         end)
     else
-        if jumpLoop then
-            jumpLoop:Disconnect()
-            jumpLoop = nil
+        if jumpConnection then
+            jumpConnection:Disconnect()
+            jumpConnection = nil
         end
     end
 end)
 
-player.CharacterAdded:Connect(function(char)
-    wait(1)
-    if jumpBypassEnabled then
-        local hum = char:WaitForChild("Humanoid")
-        if jumpLoop then jumpLoop:Disconnect() end
-        jumpLoop = runService.Heartbeat:Connect(function()
-            if hum and jumpBypassEnabled then
-                hum.Jump = true
-            else
-                if jumpLoop then
-                    jumpLoop:Disconnect()
-                    jumpLoop = nil
-                end
-            end
-        end)
-    end
-end)
-
--- Close GUI and full reset
-createCircleButton("❌ Close & Exit", function()
+-- ❌ Close fully (closes the entire script)
+createCircleButton("❌ Close Full", 12, function()
     gui:Destroy()
-    -- You can add additional cleanup if your executor supports it
+    if flyConn then flyConn:Disconnect() end
+    if jumpConnection then jumpConnection:Disconnect() end
+    -- Disconnect other persistent connections if you added any
 end)
