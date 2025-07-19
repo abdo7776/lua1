@@ -1,10 +1,11 @@
 --// ✅ ABDO Script GUI (Windows 11 Style Public Control) - XENO Optimized (with Blood Sky)
 
-local player = game:GetService("Players").LocalPlayer
-local userInput = game:GetService("UserInputService")
-local runService = game:GetService("RunService")
-local Lighting = game:GetService("Lighting")
+local player        = game:GetService("Players").LocalPlayer
+local userInput     = game:GetService("UserInputService")
+local runService    = game:GetService("RunService")
+local Lighting      = game:GetService("Lighting")
 
+-- Main GUI setup
 local gui = Instance.new("ScreenGui")
 gui.Name = "AbdoScriptGUI"
 gui.ResetOnSpawn = false
@@ -14,40 +15,41 @@ gui.Parent = player:WaitForChild("PlayerGui")
 local frame = Instance.new("Frame", gui)
 frame.Size = UDim2.new(0, 280, 0, 560)
 frame.Position = UDim2.new(0, 30, 0.4, -280)
-frame.BackgroundColor3 = Color3.fromRGB(245,245,245)
+frame.BackgroundColor3 = Color3.fromRGB(245, 245, 245)
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
-frame.AnchorPoint = Vector2.new(0,0.5)
+frame.AnchorPoint = Vector2.new(0, 0.5)
 frame.ClipsDescendants = true
 
 local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1,0,0,36)
-title.BackgroundColor3 = Color3.fromRGB(225,225,255)
+title.Size = UDim2.new(1, 0, 0, 36)
+title.BackgroundColor3 = Color3.fromRGB(225, 225, 255)
 title.Text = "🔷 ABDO Control Panel"
-title.TextColor3 = Color3.new(0,0,0)
+title.TextColor3 = Color3.new(0, 0, 0)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 20
 
+-- Button creator
 local function createCircleButton(text, order, callback)
     local btn = Instance.new("TextButton", frame)
-    btn.Size = UDim2.new(1,-20,0,34)
-    btn.Position = UDim2.new(0,10,0,40 + (order*38))
-    btn.BackgroundColor3 = Color3.fromRGB(230,230,255)
+    btn.Size = UDim2.new(1, -20, 0, 34)
+    btn.Position = UDim2.new(0, 10, 0, 40 + (order * 38))
+    btn.BackgroundColor3 = Color3.fromRGB(230, 230, 255)
     btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(0,0,0)
+    btn.TextColor3 = Color3.new(0, 0, 0)
     btn.Font = Enum.Font.GothamSemibold
     btn.TextSize = 14
     btn.BorderSizePixel = 0
     btn.AutoButtonColor = true
     btn.ClipsDescendants = true
-    btn.AnchorPoint = Vector2.new(0,0)
+    btn.AnchorPoint = Vector2.new(0, 0)
     btn.ZIndex = 2
     btn.BackgroundTransparency = 0.05
     btn.TextWrapped = true
     btn.TextXAlignment = Enum.TextXAlignment.Center
     btn.TextYAlignment = Enum.TextYAlignment.Center
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(1,0)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(1, 0)
     btn.MouseButton1Click:Connect(callback)
     return btn
 end
@@ -62,25 +64,31 @@ end)
 local flying, flyConn = false, nil
 createCircleButton("🚩 Fly", 0, function()
     flying = not flying
-    local chr = player.Character
-    local hrp = chr and chr:FindFirstChild("HumanoidRootPart")
-    local hum = chr and chr:FindFirstChild("Humanoid")
+    local char = player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChild("Humanoid")
     if flying and hrp and hum then
         hum.PlatformStand = true
-        local bv = hrp:FindFirstChild("AbdoFly") or Instance.new("BodyVelocity")
-        bv.Name = "AbdoFly"; bv.MaxForce = Vector3.new(1e9,1e9,1e9); bv.Parent = hrp
+        local bv = Instance.new("BodyVelocity")
+        bv.Name = "AbdoFly"
+        bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+        bv.Parent = hrp
         flyConn = runService.RenderStepped:Connect(function()
-            if not flying or not hrp:FindFirstChild("AbdoFly") then flyConn:Disconnect() return end
+            if not flying or not hrp:FindFirstChild("AbdoFly") then
+                flyConn:Disconnect()
+                return
+            end
             local mv = Vector3.new()
             if userInput:IsKeyDown(Enum.KeyCode.W) then mv += workspace.CurrentCamera.CFrame.LookVector end
             if userInput:IsKeyDown(Enum.KeyCode.S) then mv -= workspace.CurrentCamera.CFrame.LookVector end
             if userInput:IsKeyDown(Enum.KeyCode.A) then mv -= workspace.CurrentCamera.CFrame.RightVector end
             if userInput:IsKeyDown(Enum.KeyCode.D) then mv += workspace.CurrentCamera.CFrame.RightVector end
-            hrp.AbdoFly.Velocity = mv.Magnitude > 0 and mv.Unit * 70 or Vector3.zero
+            hrp.AbdoFly.Velocity = mv.Magnitude > 0 and mv.Unit * 70 or Vector3.new()
         end)
     else
-        if hrp and hrp:FindFirstChild("AbdoFly") then hrp.AbdoFly:Destroy() end
         if flyConn then flyConn:Disconnect() end
+        if hrp and hrp:FindFirstChild("AbdoFly") then hrp.AbdoFly:Destroy() end
+        if hum then hum.PlatformStand = false end
     end
 end)
 
@@ -88,20 +96,23 @@ end)
 local noclip = false
 createCircleButton("🚪 Noclip", 1, function() noclip = not noclip end)
 runService.Stepped:Connect(function()
-    if noclip then
-        local chr = player.Character
-        for _, p in ipairs(chr and chr:GetDescendants() or {}) do
-            if p:IsA("BasePart") then p.CanCollide = false end
+    if noclip and player.Character then
+        for _, part in ipairs(player.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
         end
     end
 end)
 
 -- 👣 Click TP
 local tpEnabled = false
-local mouse = player:GetMouse()
 createCircleButton("👣 Click TP", 2, function() tpEnabled = not tpEnabled end)
-mouse.Button1Down:Connect(function()
-    if tpEnabled and mouse.Target then player.Character:MoveTo(mouse.Hit.p) end
+player:GetMouse().Button1Down:Connect(function()
+    if tpEnabled then
+        local hit = player:GetMouse().Hit
+        player.Character:MoveTo(hit.p)
+    end
 end)
 
 -- ⚡ WalkSpeed +
@@ -131,10 +142,13 @@ end)
 -- 🔁 Reset Walk/Jump
 createCircleButton("🔁 Reset Walk/Jump", 7, function()
     local hum = player.Character and player.Character:FindFirstChild("Humanoid")
-    if hum then hum.WalkSpeed = 16; hum.JumpPower = 50 end
+    if hum then
+        hum.WalkSpeed = 16
+        hum.JumpPower = 50
+    end
 end)
 
--- 💥 Break World (Joke & Client)
+-- 💥 Break World (Client Joke)
 local worldBroken = false
 createCircleButton("💥 Break World (Joke & Client)", 8, function()
     worldBroken = not worldBroken
@@ -142,7 +156,9 @@ createCircleButton("💥 Break World (Joke & Client)", 8, function()
     if not hrp then return end
     for _, part in ipairs(workspace:GetDescendants()) do
         if part:IsA("BasePart") and (part.Position - hrp.Position).Magnitude < 100 then
-            if not part:GetAttribute("Orig") then part:SetAttribute("Orig", part.Transparency) end
+            if not part:GetAttribute("OrigTrans") then
+                part:SetAttribute("OrigTrans", part.Transparency)
+            end
             part.LocalTransparencyModifier = worldBroken and 1 or 0
         end
     end
@@ -165,11 +181,9 @@ end)
 
 -- 🌇 Blood Sky (Client Only)
 createCircleButton("🌇 Blood Sky", 10, function()
-    -- Clear old skies
     for _, v in ipairs(Lighting:GetChildren()) do
         if v:IsA("Sky") then v:Destroy() end
     end
-    -- Add red/blood sky
     local sky = Instance.new("Sky", Lighting)
     sky.SkyboxBk = "rbxassetid://151471170"
     sky.SkyboxDn = "rbxassetid://151471170"
@@ -177,13 +191,13 @@ createCircleButton("🌇 Blood Sky", 10, function()
     sky.SkyboxLf = "rbxassetid://151471170"
     sky.SkyboxRt = "rbxassetid://151471170"
     sky.SkyboxUp = "rbxassetid://151471170"
-    Lighting.Ambient = Color3.fromRGB(150,0,0)
-    Lighting.OutdoorAmbient = Color3.fromRGB(100,0,0)
-    Lighting.FogColor = Color3.fromRGB(70,0,0)
+    Lighting.Ambient = Color3.fromRGB(150, 0, 0)
+    Lighting.OutdoorAmbient = Color3.fromRGB(100, 0, 0)
+    Lighting.FogColor = Color3.fromRGB(70, 0, 0)
     Lighting.FogEnd = 300
 end)
 
--- ❌ Full Close
+-- ❌ Close
 createCircleButton("❌ Close", 11, function()
     gui:Destroy()
 end)
