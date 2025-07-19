@@ -1,0 +1,231 @@
+--// ✅ ABDO Script GUI (Windows 11 Style Public Control) - XENO Optimized
+
+local player = game:GetService("Players").LocalPlayer
+local userInput = game:GetService("UserInputService")
+local runService = game:GetService("RunService")
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "AbdoScriptGUI"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 280, 0, 520)
+frame.Position = UDim2.new(0, 30, 0.4, -250)
+frame.BackgroundColor3 = Color3.fromRGB(245, 245, 245)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.AnchorPoint = Vector2.new(0, 0.5)
+frame.BackgroundTransparency = 0.05
+frame.ClipsDescendants = true
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 36)
+title.BackgroundColor3 = Color3.fromRGB(225, 225, 255)
+title.Text = "🔷 ABDO Control Panel"
+title.TextColor3 = Color3.new(0, 0, 0)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
+
+local connections = {}
+
+local function createCircleButton(text, order, callback)
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(1, -20, 0, 34)
+    btn.Position = UDim2.new(0, 10, 0, 40 + (order * 38))
+    btn.BackgroundColor3 = Color3.fromRGB(230, 230, 255)
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(0, 0, 0)
+    btn.Font = Enum.Font.GothamSemibold
+    btn.TextSize = 14
+    btn.BorderSizePixel = 0
+    btn.AutoButtonColor = true
+    btn.ClipsDescendants = true
+    btn.AnchorPoint = Vector2.new(0, 0)
+    btn.ZIndex = 2
+    btn.BackgroundTransparency = 0.05
+    btn.TextWrapped = true
+    btn.TextTruncate = Enum.TextTruncate.AtEnd
+    btn.TextScaled = false
+    btn.TextXAlignment = Enum.TextXAlignment.Center
+    btn.TextYAlignment = Enum.TextYAlignment.Center
+    local uiCorner = Instance.new("UICorner")
+    uiCorner.CornerRadius = UDim.new(1, 0)
+    uiCorner.Parent = btn
+    local conn = btn.MouseButton1Click:Connect(callback)
+    table.insert(connections, conn)
+    return btn
+end
+
+-- Maintain GUI on death
+table.insert(connections, player.CharacterAdded:Connect(function()
+    wait(1)
+    gui.Parent = player:WaitForChild("PlayerGui")
+end))
+
+-- 🚩 Fly (Infinite Yield Style)
+local flying = false
+local flyConn
+createCircleButton("🚩 Fly", 0, function()
+    flying = not flying
+    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    local hum = player.Character and player.Character:FindFirstChild("Humanoid")
+    if flying and hrp and hum then
+        hum.PlatformStand = true
+        local bv = hrp:FindFirstChild("AbdoFly") or Instance.new("BodyVelocity")
+        bv.Name = "AbdoFly"
+        bv.Velocity = Vector3.zero
+        bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+        bv.Parent = hrp
+        if flyConn then flyConn:Disconnect() end
+        flyConn = runService.RenderStepped:Connect(function()
+            if not flying or not hrp:FindFirstChild("AbdoFly") then
+                flyConn:Disconnect()
+                flyConn = nil
+                return
+            end
+            local moveVec = Vector3.zero
+            if userInput:IsKeyDown(Enum.KeyCode.W) then moveVec += workspace.CurrentCamera.CFrame.LookVector end
+            if userInput:IsKeyDown(Enum.KeyCode.S) then moveVec -= workspace.CurrentCamera.CFrame.LookVector end
+            if userInput:IsKeyDown(Enum.KeyCode.A) then moveVec -= workspace.CurrentCamera.CFrame.RightVector end
+            if userInput:IsKeyDown(Enum.KeyCode.D) then moveVec += workspace.CurrentCamera.CFrame.RightVector end
+            hrp.AbdoFly.Velocity = moveVec.Magnitude > 0 and moveVec.Unit * 70 or Vector3.zero
+        end)
+    elseif hrp then
+        hum.PlatformStand = false
+        if hrp:FindFirstChild("AbdoFly") then
+            hrp.AbdoFly:Destroy()
+        end
+        if flyConn then
+            flyConn:Disconnect()
+            flyConn = nil
+        end
+    end
+end)
+
+-- 🚪 Toggle Noclip
+local noclip = false
+table.insert(connections, runService.Stepped:Connect(function()
+    if noclip and player.Character then
+        for _, part in pairs(player.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+end))
+createCircleButton("🚪 Noclip", 1, function()
+    noclip = not noclip
+end)
+
+-- 👣 Toggle Click TP
+local tpEnabled = false
+local mouse = player:GetMouse()
+table.insert(connections, mouse.Button1Down:Connect(function()
+    if tpEnabled and mouse.Target then
+        player.Character:MoveTo(mouse.Hit.p)
+    end
+end))
+createCircleButton("👣 Click TP", 2, function()
+    tpEnabled = not tpEnabled
+end)
+
+-- ⚡ WalkSpeed +
+createCircleButton("⚡ WalkSpeed +", 3, function()
+    local hum = player.Character and player.Character:FindFirstChild("Humanoid")
+    if hum then hum.WalkSpeed += 5 end
+end)
+
+-- ⚡ WalkSpeed -
+createCircleButton("⚡ WalkSpeed -", 4, function()
+    local hum = player.Character and player.Character:FindFirstChild("Humanoid")
+    if hum then hum.WalkSpeed -= 5 end
+end)
+
+-- 🫘 JumpPower +
+createCircleButton("🫘 JumpPower +", 5, function()
+    local hum = player.Character and player.Character:FindFirstChild("Humanoid")
+    if hum then hum.JumpPower += 5 end
+end)
+
+-- 🫘 JumpPower -
+createCircleButton("🫘 JumpPower -", 6, function()
+    local hum = player.Character and player.Character:FindFirstChild("Humanoid")
+    if hum then hum.JumpPower -= 5 end
+end)
+
+-- 🔁 Reset Walk/Jump
+createCircleButton("🔁 Reset Walk/Jump", 7, function()
+    local hum = player.Character and player.Character:FindFirstChild("Humanoid")
+    if hum then
+        hum.WalkSpeed = 16
+        hum.JumpPower = 50
+    end
+end)
+
+-- ❤️ No Die Mode (Regen Health)
+local noDieEnabled = false
+local noDieConn
+createCircleButton("❤️ No Die Mode", 8, function()
+    noDieEnabled = not noDieEnabled
+    local character = player.Character
+    if not character then return end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if noDieEnabled and humanoid then
+        noDieConn = runService.Heartbeat:Connect(function()
+            if humanoid and humanoid.Health < humanoid.MaxHealth then
+                humanoid.Health = humanoid.MaxHealth
+            end
+        end)
+        table.insert(connections, noDieConn)
+    else
+        if noDieConn then
+            noDieConn:Disconnect()
+            noDieConn = nil
+        end
+    end
+end)
+
+-- 💥 Break World (Joke & Client)
+local worldBroken = false
+createCircleButton("💥 Break World (Joke & Client)", 9, function()
+    worldBroken = not worldBroken
+    local character = player.Character
+    if not character then return end
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    if worldBroken then
+        for _, part in pairs(workspace:GetDescendants()) do
+            if part:IsA("BasePart") and (part.Position - hrp.Position).Magnitude < 100 then
+                if not part:GetAttribute("OriginalTransparency") then
+                    part:SetAttribute("OriginalTransparency", part.Transparency)
+                end
+                part.LocalTransparencyModifier = 1
+            end
+        end
+    else
+        for _, part in pairs(workspace:GetDescendants()) do
+            if part:IsA("BasePart") and part:GetAttribute("OriginalTransparency") then
+                part.LocalTransparencyModifier = 0
+            end
+        end
+    end
+end)
+
+-- ❌ Close (FULL CLOSE: destroys GUI and disconnects events)
+createCircleButton("❌ Close", 10, function()
+    for _, conn in ipairs(connections) do
+        if conn and conn.Disconnect then
+            conn:Disconnect()
+        end
+    end
+    if player.Character then
+        local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+        if hrp and hrp:FindFirstChild("AbdoFly") then
+            hrp.AbdoFly:Destroy()
+        end
+    end
+    gui:Destroy()
+end)
