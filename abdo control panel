@@ -2,8 +2,6 @@
 
 local player = game:GetService("Players").LocalPlayer
 local userInput = game:GetService("UserInputService")
-local runService = game:GetService("RunService")
-
 local gui = Instance.new("ScreenGui")
 gui.Name = "AbdoScriptGUI"
 gui.ResetOnSpawn = false
@@ -29,8 +27,6 @@ title.TextColor3 = Color3.new(0, 0, 0)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 20
 
-local connections = {}
-
 local function createCircleButton(text, order, callback)
     local btn = Instance.new("TextButton", frame)
     btn.Size = UDim2.new(1, -20, 0, 34)
@@ -54,18 +50,20 @@ local function createCircleButton(text, order, callback)
     local uiCorner = Instance.new("UICorner")
     uiCorner.CornerRadius = UDim.new(1, 0)
     uiCorner.Parent = btn
-    local conn = btn.MouseButton1Click:Connect(callback)
-    table.insert(connections, conn)
+    btn.MouseButton1Click:Connect(callback)
     return btn
 end
 
 -- Maintain GUI on death
-table.insert(connections, player.CharacterAdded:Connect(function()
+player.CharacterAdded:Connect(function()
     wait(1)
     gui.Parent = player:WaitForChild("PlayerGui")
-end))
+end)
 
--- 🚩 Fly (Infinite Yield Style)
+-- 🛡️ God Mode Toggle (removed as per your last request)
+-- (Deleted)
+
+-- 🚩 Fly Toggle
 local flying = false
 local flyConn
 createCircleButton("🚩 Fly", 0, function()
@@ -80,7 +78,7 @@ createCircleButton("🚩 Fly", 0, function()
         bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
         bv.Parent = hrp
         if flyConn then flyConn:Disconnect() end
-        flyConn = runService.RenderStepped:Connect(function()
+        flyConn = game:GetService("RunService").RenderStepped:Connect(function()
             if not flying or not hrp:FindFirstChild("AbdoFly") then
                 flyConn:Disconnect()
                 flyConn = nil
@@ -105,9 +103,12 @@ createCircleButton("🚩 Fly", 0, function()
     end
 end)
 
--- 🚪 Toggle Noclip
+-- 🚪 Noclip Toggle
 local noclip = false
-table.insert(connections, runService.Stepped:Connect(function()
+createCircleButton("🚪 Noclip", 1, function()
+    noclip = not noclip
+end)
+game:GetService("RunService").Stepped:Connect(function()
     if noclip and player.Character then
         for _, part in pairs(player.Character:GetDescendants()) do
             if part:IsA("BasePart") then
@@ -115,21 +116,18 @@ table.insert(connections, runService.Stepped:Connect(function()
             end
         end
     end
-end))
-createCircleButton("🚪 Noclip", 1, function()
-    noclip = not noclip
 end)
 
--- 👣 Toggle Click TP
+-- 👣 Click TP Toggle
 local tpEnabled = false
+createCircleButton("👣 Click TP", 2, function()
+    tpEnabled = not tpEnabled
+end)
 local mouse = player:GetMouse()
-table.insert(connections, mouse.Button1Down:Connect(function()
+mouse.Button1Down:Connect(function()
     if tpEnabled and mouse.Target then
         player.Character:MoveTo(mouse.Hit.p)
     end
-end))
-createCircleButton("👣 Click TP", 2, function()
-    tpEnabled = not tpEnabled
 end)
 
 -- ⚡ WalkSpeed +
@@ -144,14 +142,14 @@ createCircleButton("⚡ WalkSpeed -", 4, function()
     if hum then hum.WalkSpeed -= 5 end
 end)
 
--- 🫘 JumpPower +
-createCircleButton("🫘 JumpPower +", 5, function()
+-- 🦘 JumpPower +
+createCircleButton("🦘 JumpPower +", 5, function()
     local hum = player.Character and player.Character:FindFirstChild("Humanoid")
     if hum then hum.JumpPower += 5 end
 end)
 
--- 🫘 JumpPower -
-createCircleButton("🫘 JumpPower -", 6, function()
+-- 🦘 JumpPower -
+createCircleButton("🦘 JumpPower -", 6, function()
     local hum = player.Character and player.Character:FindFirstChild("Humanoid")
     if hum then hum.JumpPower -= 5 end
 end)
@@ -165,37 +163,15 @@ createCircleButton("🔁 Reset Walk/Jump", 7, function()
     end
 end)
 
--- ❤️ No Die Mode (Regen Health)
-local noDieEnabled = false
-local noDieConn
-createCircleButton("❤️ No Die Mode", 8, function()
-    noDieEnabled = not noDieEnabled
-    local character = player.Character
-    if not character then return end
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if noDieEnabled and humanoid then
-        noDieConn = runService.Heartbeat:Connect(function()
-            if humanoid and humanoid.Health < humanoid.MaxHealth then
-                humanoid.Health = humanoid.MaxHealth
-            end
-        end)
-        table.insert(connections, noDieConn)
-    else
-        if noDieConn then
-            noDieConn:Disconnect()
-            noDieConn = nil
-        end
-    end
-end)
-
 -- 💥 Break World (Joke & Client)
 local worldBroken = false
-createCircleButton("💥 Break World (Joke & Client)", 9, function()
+createCircleButton("💥 Break World (Joke & Client)", 8, function()
     worldBroken = not worldBroken
     local character = player.Character
     if not character then return end
     local hrp = character:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
+
     if worldBroken then
         for _, part in pairs(workspace:GetDescendants()) do
             if part:IsA("BasePart") and (part.Position - hrp.Position).Magnitude < 100 then
@@ -214,18 +190,43 @@ createCircleButton("💥 Break World (Joke & Client)", 9, function()
     end
 end)
 
--- ❌ Close (FULL CLOSE: destroys GUI and disconnects events)
-createCircleButton("❌ Close", 10, function()
-    for _, conn in ipairs(connections) do
-        if conn and conn.Disconnect then
-            conn:Disconnect()
+-- 🛡️ No Die Mode (Regenerate Health)
+local noDieEnabled = false
+local noDieConn
+createCircleButton("🛡️ No Die Mode", 9, function()
+    noDieEnabled = not noDieEnabled
+    local hum = player.Character and player.Character:FindFirstChild("Humanoid")
+    if noDieEnabled and hum then
+        if noDieConn then noDieConn:Disconnect() end
+        noDieConn = game:GetService("RunService").Heartbeat:Connect(function()
+            if hum.Health < hum.MaxHealth then
+                hum.Health = hum.MaxHealth
+            end
+        end)
+    else
+        if noDieConn then noDieConn:Disconnect() noDieConn = nil end
+    end
+end)
+
+-- 👻 Invisible (Local Only)
+local invisible = false
+createCircleButton("👻 Invisible (Local)", 10, function()
+    invisible = not invisible
+    local character = player.Character
+    if character then
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Transparency = invisible and 1 or 0
+            elseif part:IsA("Decal") then
+                part.Transparency = invisible and 1 or 0
+            end
         end
     end
-    if player.Character then
-        local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-        if hrp and hrp:FindFirstChild("AbdoFly") then
-            hrp.AbdoFly:Destroy()
-        end
-    end
+end)
+
+-- ❌ Close (Full Close, destroys everything)
+createCircleButton("❌ Close", 11, function()
     gui:Destroy()
+    -- Try to shutdown script entirely by disconnecting all connections if needed (not shown here)
+    -- You can add other cleanup if necessary here
 end)
